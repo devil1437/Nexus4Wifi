@@ -88,6 +88,7 @@ static bcmsdh_driver_t drvinfo = {NULL, NULL};
 bool
 bcmsdh_chipmatch(uint16 vendor, uint16 device)
 {
+	DHD_MYTRACE(("%s-%s\n", __FILE__, __FUNCTION__));
 	/* Add other vendors and devices as required */
 
 #ifdef BCMSDIOH_STD
@@ -163,6 +164,8 @@ int bcmsdh_probe(struct device *dev)
 	int irq = 0;
 	uint32 vendevid;
 	unsigned long irq_flags = 0;
+	
+	DHD_MYTRACE(("%s-%s\n", __FILE__, __FUNCTION__));
 
 #if !defined(BCMLXSDMMC) && defined(BCMPLATFORM_BUS)
 	pdev = to_platform_device(dev);
@@ -261,6 +264,8 @@ int bcmsdh_remove(struct device *dev)
 	bcmsdh_hc_t *sdhc, *prev;
 	osl_t *osh;
 
+	DHD_MYTRACE(("%s-%s\n", __FILE__, __FUNCTION__));
+	
 	sdhc = sdhcinfo;
 	drvinfo.detach(sdhc->ch);
 	bcmsdh_detach(sdhc->osh, sdhc->sdh);
@@ -360,6 +365,8 @@ bcmsdh_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	bcmsdh_info_t *sdh = NULL;
 	int rc;
 
+	DHD_MYTRACE(("%s-%s\n", __FILE__, __FUNCTION__));
+	
 	if (sd_pci_slot != 0xFFFFffff) {
 		if (pdev->bus->number != (sd_pci_slot>>16) ||
 			PCI_SLOT(pdev->devfn) != (sd_pci_slot&0xffff)) {
@@ -488,6 +495,8 @@ bcmsdh_pci_remove(struct pci_dev *pdev)
 {
 	bcmsdh_hc_t *sdhc, *prev;
 	osl_t *osh;
+	
+	DHD_MYTRACE(("%s-%s\n", __FILE__, __FUNCTION__));
 
 	/* find the SDIO Host Controller state for this pdev and take it out from the list */
 	for (sdhc = sdhcinfo, prev = NULL; sdhc; sdhc = sdhc->next) {
@@ -522,6 +531,8 @@ bcmsdh_register(bcmsdh_driver_t *driver)
 {
 	int error = 0;
 
+	DHD_MYTRACE(("%s-%s\n", __FILE__, __FUNCTION__));
+	
 	drvinfo = *driver;
 
 #if defined(BCMPLATFORM_BUS)
@@ -550,6 +561,7 @@ extern void sdio_function_cleanup(void);
 void
 bcmsdh_unregister(void)
 {
+	DHD_MYTRACE(("%s-%s\n", __FILE__, __FUNCTION__));
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0))
 	if (bcmsdh_pci_driver.node.next)
 #endif
@@ -568,6 +580,8 @@ void bcmsdh_oob_intr_set(bool enable)
 {
 	static bool curstate = 1;
 	unsigned long flags;
+	
+	DHD_MYTRACE(("%s-%s\n", __FILE__, __FUNCTION__));
 
 	spin_lock_irqsave(&sdhcinfo->irq_lock, flags);
 	if (curstate != enable) {
@@ -584,6 +598,8 @@ static irqreturn_t wlan_oob_irq(int irq, void *dev_id)
 {
 	dhd_pub_t *dhdp;
 
+	DHD_MYTRACE(("%s-%s\n", __FILE__, __FUNCTION__));
+	
 	dhdp = (dhd_pub_t *)dev_get_drvdata(sdhcinfo->dev);
 
 	bcmsdh_oob_intr_set(0);
@@ -601,6 +617,8 @@ static irqreturn_t wlan_oob_irq(int irq, void *dev_id)
 int bcmsdh_register_oob_intr(void * dhdp)
 {
 	int error = 0;
+	
+	DHD_MYTRACE(("%s-%s\n", __FILE__, __FUNCTION__));
 
 	SDLX_MSG(("%s Enter \n", __FUNCTION__));
 
@@ -627,6 +645,7 @@ int bcmsdh_register_oob_intr(void * dhdp)
 
 void bcmsdh_set_irq(int flag)
 {
+	DHD_MYTRACE(("%s-%s\n", __FILE__, __FUNCTION__));
 	if (sdhcinfo->oob_irq_registered && sdhcinfo->oob_irq_enable_flag != flag) {
 		SDLX_MSG(("%s Flag = %d", __FUNCTION__, flag));
 		sdhcinfo->oob_irq_enable_flag = flag;
@@ -642,6 +661,7 @@ void bcmsdh_set_irq(int flag)
 
 void bcmsdh_unregister_oob_intr(void)
 {
+	DHD_MYTRACE(("%s-%s\n", __FILE__, __FUNCTION__));
 	SDLX_MSG(("%s: Enter\n", __FUNCTION__));
 
 	if (sdhcinfo->oob_irq_registered == TRUE) {
@@ -655,6 +675,7 @@ void bcmsdh_unregister_oob_intr(void)
 #if defined(BCMLXSDMMC)
 void *bcmsdh_get_drvdata(void)
 {
+	DHD_MYTRACE(("%s-%s\n", __FILE__, __FUNCTION__));
 	if (!sdhcinfo)
 		return NULL;
 	return dev_get_drvdata(sdhcinfo->dev);
