@@ -3848,6 +3848,8 @@ void initKernelEnv(void){
 int getNumLine(char *buf){
 	int i, count = 0;
 
+	//MY_WIFI_TRACE(("%s.\n", __FUNCTION__));
+
 	for(i = 0; i < FILE_BUFF_SIZE; i++){
 		if(buf[i] == '\0'){
 			return count;
@@ -3868,6 +3870,8 @@ int parsePort(char *buf){
 	int i, flag = -1, port;
 	char portStr[512];
 	
+	//MY_WIFI_TRACE(("%s.\n", __FUNCTION__));
+
 	memset(portStr,0,512);
 	
 	for(i = 0; i < FILE_BUFF_SIZE; i++){
@@ -3892,53 +3896,43 @@ int parsePort(char *buf){
 }
 
 /*
- * Return port number, uid in specific line.
+ * Return port number, uid.
  */
-int parseLine(char *buf, int lineNumber, int* returnValue){
-	int i, j, start = -1, lineCount = 0, wordCount = 0;
+int parseLine(char *buf, int* returnValue){
+	int i, j, start = -1, wordCount = 0;
 	char word[MAX_WORD_COUNT][50];
 	
-	MY_WIFI_DEBUG(("Line:%s\n", buf));	
+	//MY_WIFI_TRACE(("%s. buf: %s\n", __FUNCTION__, buf));
 
 	memset(word, 0, MAX_WORD_COUNT*50);
 	
 	for(i = 0; i < FILE_BUFF_SIZE; i++){
-		if(buf[i] == '\0'){
-			return -1;
-		}
-		if(lineCount == lineNumber){
-			for(j = i; j < FILE_BUFF_SIZE; j++){
-				if(buf[j] == '\n' || buf[j] == '\0'){
-					// Have read this line.
-					if(wordCount == 17){
-						returnValue[0] = parsePort(word[1]);
-						sscanf(word[7], "%d", &(returnValue[1]));
-						return 1;
-					}
-					else if(wordCount == 12){
-						return -2;
-					}
-					else{
-						return -3;
-					}
-				}
-				else if(buf[j] == ' ' || buf[j] == '\t'){
-					start = -1;
-				}
-				else{
-					if(start == -1){
-						start = j;
-						wordCount++;
-					}
-					word[wordCount-1][j-start] = buf[j];
-				}
+		if(buf[i] == '\0' || buf[i] == '\n'){
+			// Have read this line.
+			if(wordCount == 17){
+				returnValue[0] = parsePort(word[1]);
+				sscanf(word[7], "%d", &(returnValue[1]));
+				return 1;
+			}
+			else if(wordCount == 12){
+				return -2;
+			}
+			else{
+				return -3;
 			}
 		}
-		if(buf[i] == '\n'){
-			lineCount++;
+		else if(buf[i] == ' ' || buf[i] == '\t'){
+			start = -1;
 		}
-		if(lineCount > lineNumber){
-			return -4;
+		else{
+			if(start == -1){
+				start = i;
+				wordCount++;
+			}
+			if(wordCount > MAX_WORD_COUNT){
+				return -1;
+			}
+			word[wordCount-1][i-start] = buf[i];
 		}
 	}
 
@@ -3947,6 +3941,9 @@ int parseLine(char *buf, int lineNumber, int* returnValue){
 
 void readLine(char* buf, char* line, int lineNumber, int error){
 	int i, j, last = 0, start = -1, lineCount = 0;
+	
+	//MY_WIFI_TRACE(("%s.\n", __FUNCTION__));
+
 	if(error == -3){
 		for(i = 0; i < FILE_BUFF_SIZE; i++){
 			if(line[i] == '\0' || line[i] == '\n'){
@@ -3991,6 +3988,8 @@ int getListeningUid(int port){
 	int ret, i, numLine = 0, err = -1;
 	int portAndUid[2] = {0, 0}; 
 
+	//MY_WIFI_TRACE(("%s. port: %d\n", __FUNCTION__, port));
+
 	initKernelEnv();
 	
 	fp=openFile("/proc/net/tcp",O_RDONLY,0);
@@ -3998,14 +3997,18 @@ int getListeningUid(int port){
 	if (fp!=NULL){
 		memset(buf,0,FILE_BUFF_SIZE);
 		while ((ret=readFile(fp,buf,FILE_BUFF_SIZE))>0){
-			MY_WIFI_TRACE(("buf:%s\n",buf));
+			//MY_WIFI_TRACE(("buf:%s\n",buf));
 			numLine = getNumLine(buf);
 			for(i = 0; i < numLine; i++){
 				readLine(buf, line, i, err);
-				err = parseLine(line, 0, portAndUid);
+				err = parseLine(line, portAndUid);
 				if(err > 0){
-					MY_WIFI_DEBUG(("line:%d, port:%d, uid:%d\n", i, portAndUid[0], portAndUid[1]));
-					if(portAndUid[0] == port)	return portAndUid[1];
+					//MY_WIFI_DEBUG(("line:%d, port:%d, uid:%d\n", i, portAndUid[0], portAndUid[1]));
+					if(portAndUid[0] == port){
+						closeFile(fp);
+						set_fs(oldfs);
+						return portAndUid[1];
+					}	
 				}
 			}
 			memset(buf,0,FILE_BUFF_SIZE);
@@ -4020,14 +4023,18 @@ int getListeningUid(int port){
 	if (fp!=NULL){
 		memset(buf,0,FILE_BUFF_SIZE);
 		while ((ret=readFile(fp,buf,FILE_BUFF_SIZE))>0){
-			MY_WIFI_TRACE(("buf:%s\n",buf));
+			//MY_WIFI_TRACE(("buf:%s\n",buf));
 			numLine = getNumLine(buf);
 			for(i = 0; i < numLine; i++){
 				readLine(buf, line, i, err);
-				err = parseLine(line, 0, portAndUid);
+				err = parseLine(line, portAndUid);
 				if(err > 0){
-					MY_WIFI_DEBUG(("line:%d, port:%d, uid:%d\n", i, portAndUid[0], portAndUid[1]));
-					if(portAndUid[0] == port)	return portAndUid[1];
+					//MY_WIFI_DEBUG(("line:%d, port:%d, uid:%d\n", i, portAndUid[0], portAndUid[1]));
+					if(portAndUid[0] == port){
+						closeFile(fp);
+						set_fs(oldfs);
+						return portAndUid[1];
+					}	
 				}
 			}
 			memset(buf,0,FILE_BUFF_SIZE);
@@ -4037,6 +4044,30 @@ int getListeningUid(int port){
 	
 	set_fs(oldfs); 
 	return -1;
+}
+
+int getBacklightValue(void){
+	char buf[FILE_BUFF_SIZE];
+	struct file *fp;
+	int ret, brightness = -1; 	
+
+	//MY_WIFI_TRACE(("%s.\n", __FUNCTION__));
+	
+	initKernelEnv();
+	
+	fp=openFile("/sys/devices/omapdss/display0/backlight/s6e8aa0/brightness",O_RDONLY,0);
+	
+	if (fp!=NULL){
+		memset(buf,0,FILE_BUFF_SIZE);
+		if ((ret=readFile(fp,buf,FILE_BUFF_SIZE))>0){
+			sscanf(buf, "%d", &brightness);
+		}
+		else printk("read file error %d\n",ret);
+		closeFile(fp);
+	}
+	
+	set_fs(oldfs); 	
+	return brightness;
 }
 
 /* Return TRUE if there may be more frames to read */
@@ -4635,13 +4666,12 @@ deliver:
 			uchar protocol = ip[9];
 			if(protocol == 0x0006){
 				// 0x0006 TCP,
-				// Start from A[32+ipHdrLen]
 				uchar *tcp = &(ip[ipHdrLen]);
 				int dstPort = tcp[3] | tcp[2] << 8;
 				int uid = getListeningUid(dstPort);
 				MY_WIFI_DEBUG(("ipHdrLen = %d, protocol = %02x, dstPort = %d, uid = %d\n", ipHdrLen, protocol, dstPort, uid));
-				if(uid == 10065){
-					MY_WIFI_TRACE(("Drop a line packet.\n"));
+				if( (uid == 10033 || uid == 10065 || uid == 10067 || uid == 10075) && getBacklightValue() == 0){
+					MY_WIFI_DEBUG(("Drop a line packet.\n"));
 					dhd_os_sdlock_rxq(bus->dhd);
 					PKTFREE(bus->dhd->osh, pkt, FALSE);
 					dhd_os_sdunlock_rxq(bus->dhd);
